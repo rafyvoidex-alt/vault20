@@ -1,0 +1,6 @@
+{
+  "name": "Lifetime Cloud Vault",
+  "description": "Ultra-clean 10GB lifetime cloud storage with maximum lossless web compression, live storage visualizer, strict 1-IP 1-Account security enforcement, and zero-expiration guarantee.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
