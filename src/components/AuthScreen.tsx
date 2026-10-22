@@ -12,6 +12,7 @@ import {
   User,
   Sparkles,
   Zap,
+  Smartphone,
 } from 'lucide-react';
 
 interface AuthScreenProps {
@@ -53,46 +54,46 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center px-4 py-8 sm:py-12 relative overflow-hidden">
-      {/* Background radial gradients */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-cyan-600/10 via-blue-600/10 to-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-center items-center px-4 py-8 sm:py-12 relative overflow-hidden font-sans">
+      {/* Background soft ambient radial gradient */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-tr from-cyan-100/60 via-blue-100/40 to-indigo-100/60 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container */}
-      <div className="w-full max-w-md mx-auto relative z-10 space-y-5">
+      <div className="w-full max-w-md mx-auto relative z-10 space-y-6">
         {/* Brand & Title */}
-        <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-xl shadow-cyan-500/20 mb-1">
-            <Cloud className="w-8 h-8 sm:w-9 sm:h-9 text-white" />
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-tr from-cyan-600 to-blue-600 shadow-xl shadow-cyan-600/20 mb-1">
+            <Cloud className="w-9 h-9 text-white" />
           </div>
 
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <InfinityIcon className="w-3.5 h-3.5" />
               <span>10 GB Lifetime Free Vault</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
               Lifetime Cloud Vault
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
-              Maximum web storage compression saves space • 100% original uncompressed restoration on download • Strict 1-IP protection.
+            <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
+              Light • Smooth • Zero Data Loss • Maximum Lossless Web Storage Compression
             </p>
           </div>
         </div>
 
-        {/* Auth Box */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur-md space-y-4">
-          {/* Security Notice Banner */}
-          <div className="p-3.5 bg-slate-950/90 border border-slate-800 rounded-2xl space-y-2">
+        {/* Auth Box in Light Card */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm backdrop-blur-md space-y-5">
+          {/* Security & Device Notice Banner */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Security Shield:</span>
+              <span className="text-slate-600 font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Device & IP Guard:</span>
               </span>
               <button
                 type="button"
                 onClick={() => setShowIpEditor(!showIpEditor)}
-                className="font-mono text-cyan-400 hover:underline text-[11px]"
-                title="Click to change or simulate IP"
+                className="font-mono text-cyan-700 hover:underline text-[11px] font-bold"
+                title="Click to simulate or switch IP"
               >
                 IP: {clientIp}
               </button>
@@ -104,35 +105,40 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   type="text"
                   value={ipInput}
                   onChange={(e) => setIpInput(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-white font-mono flex-1 focus:outline-none focus:border-cyan-500"
+                  className="bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 font-mono flex-1 focus:outline-none focus:border-cyan-600"
                   placeholder="e.g. 192.168.1.100"
                 />
                 <button
                   type="button"
                   onClick={handleSaveIp}
-                  className="px-2.5 py-1 bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs"
+                  className="px-3 py-1 bg-cyan-600 text-white font-bold rounded-xl text-xs"
                 >
                   Set IP
                 </button>
               </div>
             ) : (
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                <strong className="text-slate-200">Rule #1:</strong> Exactly <span className="text-cyan-400 font-semibold">1 account</span> permitted per IP address. Attempting to register or log into a second account will result in a <span className="text-rose-400 font-semibold">permanent ban</span>.
-              </p>
+              <div className="text-[11px] text-slate-600 leading-relaxed space-y-1">
+                <p>
+                  <strong>Multi-Device:</strong> You can access your vault from any phone or PC using your registered Gmail!
+                </p>
+                <p>
+                  <strong className="text-rose-700">Anti-Abuse Rule:</strong> Only <span className="font-bold text-slate-900">1 account</span> is allowed per IP/device. Attempting to log into a <em>second different account</em> triggers an automatic permanent ban.
+                </p>
+              </div>
             )}
 
             {boundEmail && (
-              <div className="text-[11px] bg-slate-900 p-2 rounded-xl border border-slate-800 text-slate-300">
-                Bound to IP: <strong className="text-emerald-400">{boundEmail}</strong>
+              <div className="text-[11px] bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-emerald-900 font-medium">
+                Bound Account on this IP: <strong>{boundEmail}</strong>
               </div>
             )}
           </div>
 
           {/* Primary OAuth Button: Continue with Google */}
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <button
               onClick={() => onContinueOAuth(defaultEmail)}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs sm:text-sm shadow-xl shadow-white/5 transition-all hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs sm:text-sm shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
                 <path
@@ -160,7 +166,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCustomInput(true)}
-                className="w-full text-center text-xs text-slate-400 hover:text-slate-200 py-1 transition-colors"
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 py-1 font-medium transition-colors"
               >
                 Or sign in with another email address →
               </button>
@@ -173,11 +179,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     placeholder="Enter custom email address"
                     value={customEmail}
                     onChange={(e) => setCustomEmail(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-600 focus:bg-white"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-xs font-semibold hover:from-cyan-400 hover:to-blue-500 transition-colors"
+                    className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl text-xs font-bold hover:from-cyan-500 hover:to-blue-500 transition-colors shadow-xs"
                   >
                     Continue
                   </button>
@@ -185,7 +191,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowCustomInput(false)}
-                  className="text-[11px] text-slate-500 hover:text-slate-400"
+                  className="text-[11px] text-slate-400 hover:text-slate-600"
                 >
                   Cancel
                 </button>
@@ -194,42 +200,42 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </div>
 
           {/* Quick Demo: Security Ban Simulator Button */}
-          <div className="pt-2.5 border-t border-slate-800">
+          <div className="pt-2.5 border-t border-slate-200">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-rose-400 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" />
-                <span>Test 1-IP Security Enforcement:</span>
+              <span className="text-[11px] font-bold text-rose-700 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                <span>Test Anti-Abuse Permanent Ban:</span>
               </span>
             </div>
             <button
               type="button"
               onClick={onTriggerViolationTest}
-              className="w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-              <span>Simulate 2nd Account Attempt (Triggers Ban)</span>
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+              <span>Simulate 2nd Account Attempt on this IP (Triggers Ban)</span>
             </button>
           </div>
         </div>
 
-        {/* 3 Value Pillars */}
-        <div className="grid grid-cols-3 gap-2.5 text-center">
-          <div className="p-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl">
-            <HardDrive className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 mx-auto mb-1" />
-            <h4 className="text-xs font-bold text-white">10 GB Vault</h4>
-            <p className="text-[10px] text-slate-400">Zero recurring charges</p>
+        {/* 3 Value Pillars in Clean Light Theme */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs">
+            <HardDrive className="w-5 h-5 text-cyan-600 mx-auto mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">10 GB Vault</h4>
+            <p className="text-[10px] text-slate-500">Zero recurring charges</p>
           </div>
 
-          <div className="p-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl">
-            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 mx-auto mb-1" />
-            <h4 className="text-xs font-bold text-white">Max Compress</h4>
-            <p className="text-[10px] text-slate-400">Lossless download</p>
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs">
+            <Smartphone className="w-5 h-5 text-indigo-600 mx-auto mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">Multi-Device</h4>
+            <p className="text-[10px] text-slate-500">Same Gmail on phones</p>
           </div>
 
-          <div className="p-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl">
-            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400 mx-auto mb-1" />
-            <h4 className="text-xs font-bold text-white">1-IP Shield</h4>
-            <p className="text-[10px] text-slate-400">Permanent ban guard</p>
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs">
+            <ShieldCheck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">Zero Loss</h4>
+            <p className="text-[10px] text-slate-500">Hard quota protection</p>
           </div>
         </div>
       </div>

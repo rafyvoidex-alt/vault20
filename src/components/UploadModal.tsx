@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, X, FileText, CheckCircle2, AlertCircle, Lock, Zap, Sparkles, Layers } from 'lucide-react';
-import { VaultFile, validateFileUpload, getFileCategory, generateChecksum, formatBytes } from '../utils/storage';
+import { UploadCloud, X, FileText, CheckCircle2, AlertCircle, Lock, Zap, Sparkles, ShieldAlert } from 'lucide-react';
+import { VaultFile, validateFileUpload, getFileCategory, generateChecksum, formatBytes, TOTAL_STORAGE_BYTES } from '../utils/storage';
 import { compressBytes, dataUrlToBytes, bytesToDataUrl, calculateSavings } from '../utils/compression';
 
 interface UploadModalProps {
@@ -25,7 +25,14 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isFull = currentUsedBytes >= TOTAL_STORAGE_BYTES;
+
   const processFile = async (file: File) => {
+    if (isFull) {
+      setError('Storage is 100% full (10 GB reached). Uploads are safely locked to prevent any data loss. Delete unneeded files or export a vault backup.');
+      return;
+    }
+
     setError(null);
     const validation = validateFileUpload(file.size, currentUsedBytes);
     if (!validation.valid) {
@@ -51,7 +58,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         // Perform real compression
         const compressedBytes = await compressBytes(originalBytes);
         const compressedSize = compressedBytes.length;
-        const { savedBytes, savingsPercentage } = calculateSavings(originalSize, compressedSize);
+        const { savingsPercentage } = calculateSavings(originalSize, compressedSize);
 
         setUploadProgress(85);
         setCompressionStatus(
@@ -123,6 +130,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (isFull) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFile(e.dataTransfer.files[0]);
     }
@@ -136,6 +144,11 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
   // Instant demo samples demonstrating compression savings
   const handleGenerateSample = async (type: 'document' | 'image' | 'archive') => {
+    if (isFull) {
+      setError('Storage is 100% full. Upload locked.');
+      return;
+    }
+
     const timestamp = Date.now();
     let name = 'Passport_Identity_Document.pdf';
     let mimeType = 'application/pdf';
@@ -148,7 +161,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
       mimeType = 'image/png';
       originalSize = 1024 * 1024 * 3.8; // 3.8 MB
       compressedSize = 1024 * 1024 * 1.4; // 1.4 MB (63% saved)
-      rawContent = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%230f172a"/><circle cx="300" cy="200" r="100" fill="%2306b6d4"/><text x="300" y="210" font-family="sans-serif" font-size="24" fill="white" text-anchor="middle">10GB Lifetime Vault</text></svg>';
+      rawContent = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23f8fafc"/><circle cx="300" cy="200" r="100" fill="%230284c7"/><text x="300" y="210" font-family="sans-serif" font-size="24" fill="white" text-anchor="middle">10GB Lifetime Vault</text></svg>';
     } else if (type === 'archive') {
       name = 'Permanent_Source_Archive.zip';
       mimeType = 'application/zip';
@@ -185,32 +198,45 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl p-6 relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white border border-slate-200 w-full max-w-lg rounded-3xl shadow-2xl p-6 relative overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
           aria-label="Close upload dialog"
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
-        <div className="mb-5">
-          <div className="flex items-center space-x-2 text-cyan-400 text-xs font-bold mb-1">
-            <Zap className="w-4 h-4 text-cyan-400" />
-            <span>MAXIMUM WEB COMPRESSION • 10GB LIFETIME VAULT</span>
+        <div className="mb-5 pr-8">
+          <div className="flex items-center space-x-2 text-sky-600 text-xs font-bold mb-1 tracking-wide">
+            <Zap className="w-4 h-4 text-sky-600" />
+            <span>MAXIMUM LOSSLESS COMPRESSION • 10GB ZERO DATA LOSS</span>
           </div>
-          <h3 className="text-xl font-bold text-white">Upload Files to Vault</h3>
-          <p className="text-xs text-slate-400 mt-1">
-            Files are automatically compressed to save maximum vault space, and downloaded in original uncompressed format.
+          <h3 className="text-xl font-bold text-slate-900">Upload Files to 10GB Vault</h3>
+          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            Files are automatically compressed inside the storage layer to save maximum capacity, and restored to 100% original uncompressed quality on download.
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center gap-2.5 text-xs text-rose-300">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+        {/* Storage Full Warning */}
+        {isFull && (
+          <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-xs text-rose-800">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" />
+            <div>
+              <p className="font-bold">Vault Storage Full (10.00 GB Reached)</p>
+              <p className="text-[11px] text-rose-600 mt-0.5">
+                Uploads are strictly blocked to protect existing files and prevent data corruption. No data will be lost.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error && !isFull && (
+          <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-2.5 text-xs text-rose-700">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
             <span>{error}</span>
           </div>
         )}
@@ -219,39 +245,49 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         <div
           onDragOver={(e) => {
             e.preventDefault();
-            setIsDragging(true);
+            if (!isFull) setIsDragging(true);
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-            isDragging
-              ? 'border-cyan-400 bg-cyan-500/10 scale-[0.99]'
-              : 'border-slate-700 hover:border-cyan-500/60 bg-slate-800/40 hover:bg-slate-800/70'
+          onClick={() => {
+            if (!isFull) fileInputRef.current?.click();
+          }}
+          className={`border-2 border-dashed rounded-2xl p-7 text-center transition-all ${
+            isFull
+              ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+              : isDragging
+              ? 'border-sky-500 bg-sky-50 scale-[0.99] cursor-pointer'
+              : 'border-slate-300 hover:border-sky-500 bg-slate-50/70 hover:bg-sky-50/30 cursor-pointer'
           }`}
         >
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleInputChange}
+            disabled={isFull}
             className="hidden"
             id="file-upload-input"
           />
 
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4">
-            <UploadCloud className="w-8 h-8" />
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mb-3">
+            <UploadCloud className="w-7 h-7" />
           </div>
 
-          <h4 className="text-sm font-semibold text-white mb-1">
-            Choose a file or drag & drop here
+          <h4 className="text-sm font-semibold text-slate-800 mb-1">
+            {isFull ? 'Storage Quota Reached' : 'Choose a file or drag & drop here'}
           </h4>
-          <p className="text-xs text-slate-400 mb-4">
-            All file types supported • Maximum lossless GZIP compression
+          <p className="text-xs text-slate-500 mb-4">
+            Supports all file formats • Lossless GZIP compression with bit-perfect download
           </p>
 
           <button
             type="button"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-blue-500 transition-all"
+            disabled={isFull}
+            className={`inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition-all ${
+              isFull
+                ? 'bg-slate-300 cursor-not-allowed'
+                : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20 active:scale-95'
+            }`}
           >
             Browse Files from Device
           </button>
@@ -259,20 +295,20 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
         {/* Upload & Compression Progress */}
         {uploadProgress !== null && (
-          <div className="mt-4 p-3.5 bg-slate-800/80 rounded-2xl border border-slate-700/80 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="mt-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-700">
               <span className="truncate max-w-[250px] font-medium">{currentFileName}</span>
-              <span className="font-mono text-cyan-400 font-bold">{uploadProgress}%</span>
+              <span className="font-mono text-sky-600 font-bold">{uploadProgress}%</span>
             </div>
-            <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 h-full rounded-full transition-all duration-200"
+                className="bg-gradient-to-r from-sky-500 to-blue-600 h-full rounded-full transition-all duration-200"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
             {compressionStatus && (
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
-                <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse flex-shrink-0" />
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+                <Zap className="w-3.5 h-3.5 text-sky-600 animate-pulse flex-shrink-0" />
                 <span>{compressionStatus}</span>
               </div>
             )}
@@ -280,40 +316,43 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         )}
 
         {/* Quick Testing Sample Generator */}
-        <div className="mt-5 pt-4 border-t border-slate-800">
+        <div className="mt-5 pt-4 border-t border-slate-100">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Test With Max-Compressed Sample Files:</span>
+            <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Generate Sample Compressed Files (Instant Test):</span>
             </span>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
+              disabled={isFull}
               onClick={() => handleGenerateSample('document')}
-              className="text-[11px] p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition-colors flex flex-col items-center gap-1 text-center"
+              className="text-[11px] p-2 bg-slate-50 hover:bg-sky-50 text-slate-700 rounded-xl border border-slate-200 hover:border-sky-300 transition-colors flex flex-col items-center gap-1 text-center disabled:opacity-50"
             >
-              <FileText className="w-4 h-4 text-cyan-400" />
-              <span className="font-medium">PDF Document</span>
-              <span className="text-[10px] text-emerald-400">69% saved</span>
+              <FileText className="w-4 h-4 text-sky-600" />
+              <span className="font-medium text-slate-800">PDF Document</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">69% saved</span>
             </button>
             <button
               type="button"
+              disabled={isFull}
               onClick={() => handleGenerateSample('image')}
-              className="text-[11px] p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition-colors flex flex-col items-center gap-1 text-center"
+              className="text-[11px] p-2 bg-slate-50 hover:bg-sky-50 text-slate-700 rounded-xl border border-slate-200 hover:border-sky-300 transition-colors flex flex-col items-center gap-1 text-center disabled:opacity-50"
             >
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span className="font-medium">High-Res Image</span>
-              <span className="text-[10px] text-emerald-400">63% saved</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="font-medium text-slate-800">High-Res Image</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">63% saved</span>
             </button>
             <button
               type="button"
+              disabled={isFull}
               onClick={() => handleGenerateSample('archive')}
-              className="text-[11px] p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition-colors flex flex-col items-center gap-1 text-center"
+              className="text-[11px] p-2 bg-slate-50 hover:bg-sky-50 text-slate-700 rounded-xl border border-slate-200 hover:border-sky-300 transition-colors flex flex-col items-center gap-1 text-center disabled:opacity-50"
             >
-              <Lock className="w-4 h-4 text-indigo-400" />
-              <span className="font-medium">Code Archive</span>
-              <span className="text-[10px] text-emerald-400">66% saved</span>
+              <Lock className="w-4 h-4 text-indigo-600" />
+              <span className="font-medium text-slate-800">Code Archive</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">66% saved</span>
             </button>
           </div>
         </div>

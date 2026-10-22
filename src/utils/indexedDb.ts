@@ -49,7 +49,6 @@ export async function saveFileToIndexedDB(file: VaultFile, ownerEmail: string): 
     const localKey = `vault_files_${ownerEmail}`;
     const existing = JSON.parse(localStorage.getItem(localKey) || '[]');
     const filtered = existing.filter((f: VaultFile) => f.id !== file.id);
-    // Omit large dataUrl for localStorage safety if too large
     const safeFile = { ...file, dataUrl: file.dataUrl && file.dataUrl.length > 500000 ? undefined : file.dataUrl };
     filtered.unshift(safeFile);
     localStorage.setItem(localKey, JSON.stringify(filtered));
@@ -67,7 +66,6 @@ export async function getFilesFromIndexedDB(ownerEmail: string): Promise<VaultFi
 
       request.onsuccess = () => {
         const files: StoredVaultFile[] = request.result || [];
-        // Sort newest first
         files.sort((a, b) => b.uploadedAt - a.uploadedAt);
         resolve(files);
       };
@@ -110,5 +108,52 @@ export async function clearAllFilesForUser(ownerEmail: string): Promise<void> {
     }
   } catch (err) {
     localStorage.removeItem(`vault_files_${ownerEmail}`);
+  }
+}
+
+/**
+ * Exports all user files as a secure, portable JSON backup package
+ * allowing full zero-loss migration to another phone/device.
+ */
+export async function exportVaultBackup(ownerEmail: string): Promise<string> {
+  const files = await getFilesFromIndexedDB(ownerEmail);
+  const backup = {
+    version: '1.0',
+    exportedAt: Date.now(),
+    ownerEmail,
+    filesCount: files.length,
+    files,
+  };
+  return JSON.stringify(backup, null, 2);
+}
+
+/**
+ * Imports files from a vault backup package into the current device's IndexedDB
+ */
+export async function importVaultBackup(
+  backupJson: string,
+  targetEmail: string
+): Promise<{ success: boolean; importedCount: number; message: string }> {
+  try {
+    const parsed = JSON.parse(backupJson);
+    if (!parsed || !Array.isArray(parsed.files)) {
+      return { success: false, importedCount: 0, message: 'Invalid vault backup file structure.' };
+    }
+
+    let count = 0;
+    for (const f of parsed.files) {
+      if (f && f.id && f.name) {
+        await saveFileToIndexedDB(f, targetEmail);
+        count++;
+      }
+    }
+
+    return {
+      success: true,
+      importedCount: count,
+      message: `Successfully restored ${count} files to your vault without any data loss!`,
+    };
+  } catch (e: any) {
+    return { success: false, importedCount: 0, message: `Backup import failed: ${e.message}` };
   }
 }

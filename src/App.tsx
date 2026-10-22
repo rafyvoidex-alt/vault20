@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload } from 'lucide-react';
+import { Plus, Upload, ShieldAlert, Sparkles, Laptop, Globe } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { StorageMeter } from './components/StorageMeter';
 import { StorageHistoryChart } from './components/StorageHistoryChart';
@@ -15,10 +15,13 @@ import { SecurityBanModal } from './components/SecurityBanModal';
 import { SecurityStatusModal } from './components/SecurityStatusModal';
 import { LifetimeCertificateModal } from './components/LifetimeCertificateModal';
 import { AutoPurgeNotificationModal } from './components/AutoPurgeNotificationModal';
+import { DeviceManagerModal } from './components/DeviceManagerModal';
+import { NetlifyScalabilityModal } from './components/NetlifyScalabilityModal';
 import { AuthScreen } from './components/AuthScreen';
 import {
   SecurityState,
   INITIAL_SECURITY_STATE,
+  normalizeSecurityState,
   evaluateLoginAttempt,
   unbanIpAddress,
   resetSecurityRecords,
@@ -56,7 +59,7 @@ export default function App() {
   const [securityState, setSecurityState] = useState<SecurityState>(() => {
     try {
       const stored = localStorage.getItem(SECURITY_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : INITIAL_SECURITY_STATE;
+      return stored ? normalizeSecurityState(JSON.parse(stored)) : INITIAL_SECURITY_STATE;
     } catch {
       return INITIAL_SECURITY_STATE;
     }
@@ -82,12 +85,14 @@ export default function App() {
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [isDeviceManagerOpen, setIsDeviceManagerOpen] = useState(false);
+  const [isNetlifyModalOpen, setIsNetlifyModalOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<VaultFile | null>(null);
 
   // Active Ban state
-  const isCurrentIpBanned = !!securityState.bannedIps[cleanIp(clientIp)];
+  const isCurrentIpBanned = !!securityState?.bannedIps?.[cleanIp(clientIp)];
   const [activeBanRecord, setActiveBanRecord] = useState<IpBanRecord | null>(
-    securityState.bannedIps[cleanIp(clientIp)] || null
+    securityState?.bannedIps?.[cleanIp(clientIp)] || null
   );
 
   // Sync security state changes to localStorage
@@ -158,7 +163,7 @@ export default function App() {
     }
   }, [currentUserEmail]);
 
-  // Handle OAuth Sign In with Strict 1-IP 1-Account Enforcement
+  // Handle OAuth Sign In with Strict 1-IP 1-Account Enforcement + Multi-Device Gmail Support
   const handleOAuthLogin = (email: string) => {
     const result = evaluateLoginAttempt(clientIp, email, securityState);
 
@@ -262,13 +267,24 @@ export default function App() {
     setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
   };
 
+  // When a backup is restored from another device or JSON file
+  const handleBackupRestored = async () => {
+    if (currentUserEmail) {
+      const refreshed = await getFilesFromIndexedDB(currentUserEmail);
+      setFiles(refreshed);
+    }
+  };
+
   const storageUsage = calculateStorageUsage(files, TOTAL_STORAGE_BYTES);
-  const currentBinding = securityState.ipBindings[cleanIp(clientIp)];
+  const isStorageFull = storageUsage.usedBytes >= TOTAL_STORAGE_BYTES;
+  const currentBinding = securityState?.ipBindings?.[cleanIp(clientIp)];
   const expirationInfo = getExpirationInfo(accountCreatedAt);
   const historyData = generate30DayStorageHistory(files);
+  const registeredDevices = (currentUserEmail && securityState?.accountDevices?.[currentUserEmail]) || [];
+  const deviceCount = Math.max(1, registeredDevices.length);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-sky-500 selection:text-white antialiased">
       {/* 1. Permanent Ban Lockout Screen (Highest Priority) */}
       {(isCurrentIpBanned || activeBanRecord) && (
         <SecurityBanModal
@@ -303,16 +319,33 @@ export default function App() {
             totalUsageFormatted={storageUsage.formattedUsed}
             totalSavedFormatted={storageUsage.formattedSaved}
             savingsPercentage={storageUsage.savingsPercentage}
+            deviceCount={deviceCount}
             onSignOut={handleSignOut}
             onOpenSecurityModal={() => setIsSecurityModalOpen(true)}
             onOpenCertificate={() => setIsCertificateOpen(true)}
+            onOpenDeviceManager={() => setIsDeviceManagerOpen(true)}
+            onOpenNetlifyGuide={() => setIsNetlifyModalOpen(true)}
           />
 
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 pb-24 sm:pb-12">
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-6 pb-24 sm:pb-12">
+            {/* Storage Full Banner if 10GB limit is hit */}
+            {isStorageFull && (
+              <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex items-start gap-3 shadow-sm animate-in fade-in duration-200">
+                <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 text-xs text-rose-900">
+                  <p className="font-bold text-sm">Vault Full (10.00 GB Reached) — Uploads Locked For Safety</p>
+                  <p className="text-rose-700 mt-0.5">
+                    To guarantee zero data loss, no new files can be uploaded until you delete unneeded items or download your vault backup. All existing files remain 100% safe.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* 10 GB Storage Capacity Meter & Live Analytics */}
             <StorageMeter
               usage={storageUsage}
               onUploadClick={() => setIsUploadOpen(true)}
+              isStorageFull={isStorageFull}
             />
 
             {/* Storage History (Past 30 Days) with recharts & 1-Year Expiration */}
@@ -326,15 +359,15 @@ export default function App() {
             {/* Action Bar (Upload button & Live Count) */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <span>Your Vault Files</span>
-                  <span className="text-xs bg-slate-800 text-cyan-400 font-mono px-2 py-0.5 rounded-full border border-slate-700">
+                  <span className="text-xs bg-sky-50 text-sky-700 font-mono font-bold px-2.5 py-0.5 rounded-full border border-sky-200">
                     {files.length}
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   {files.length === 0
-                    ? 'Vault empty. Maximum compression will automatically optimize uploaded files.'
+                    ? 'Vault empty. Maximum lossless compression will automatically protect uploaded files.'
                     : `Managing ${files.length} permanent ${files.length === 1 ? 'file' : 'files'} • Uncompressed bit-perfect download`}
                 </p>
               </div>
@@ -342,19 +375,24 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsUploadOpen(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs shadow-lg shadow-cyan-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={isStorageFull}
+                  className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-xs transition-all ${
+                    isStorageFull
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                      : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sm shadow-sky-600/20 active:scale-95'
+                  }`}
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Upload Files to 10GB Space</span>
+                  <span>{isStorageFull ? 'Storage Full (Uploads Locked)' : 'Upload Files to 10GB Space'}</span>
                 </button>
               </div>
             </div>
 
             {/* File Browser with Search & Dropdowns */}
             {isLoadingFiles ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center text-slate-400">
-                <div className="w-8 h-8 mx-auto border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-xs">Loading compressed 10GB vault...</p>
+              <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 shadow-sm">
+                <div className="w-8 h-8 mx-auto border-2 border-sky-600 border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="text-xs font-medium text-slate-600">Loading compressed 10GB vault...</p>
               </div>
             ) : (
               <FileList
@@ -363,6 +401,8 @@ export default function App() {
                 onPreviewFile={(file) => setPreviewFile(file)}
                 onDeleteFile={handleDeleteFile}
                 onTogglePin={handleTogglePin}
+                onOpenDeviceManager={() => setIsDeviceManagerOpen(true)}
+                isStorageFull={isStorageFull}
               />
             )}
           </main>
@@ -371,7 +411,12 @@ export default function App() {
           <div className="sm:hidden fixed bottom-5 right-5 z-20">
             <button
               onClick={() => setIsUploadOpen(true)}
-              className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-2xl shadow-cyan-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all border border-cyan-400/30"
+              disabled={isStorageFull}
+              className={`w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-all ${
+                isStorageFull
+                  ? 'bg-slate-400 cursor-not-allowed opacity-80'
+                  : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/30 active:scale-95'
+              }`}
               title="Upload File"
               aria-label="Upload File"
             >
@@ -379,21 +424,38 @@ export default function App() {
             </button>
           </div>
 
-          {/* Footer */}
-          <footer className="border-t border-slate-900 bg-slate-950 py-5 text-center text-xs text-slate-500">
+          {/* Clean Light Footer */}
+          <footer className="border-t border-slate-200 bg-white py-5 text-center text-xs text-slate-500">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p>© 2026 Lifetime Cloud Vault • 10 GB Guaranteed Free Storage • 1-Year Auto-Delete Retention</p>
-              <div className="flex items-center space-x-4 text-[11px]">
+              <p className="flex items-center justify-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-sky-600" />
+                <span>© 2026 Lifetime Cloud Vault • 10 GB Zero-Loss Storage • 1-Year Retention Policy</span>
+              </p>
+              <div className="flex items-center space-x-3 text-[11px]">
+                <button
+                  onClick={() => setIsNetlifyModalOpen(true)}
+                  className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
+                >
+                  Netlify Capacity
+                </button>
+                <span>•</span>
+                <button
+                  onClick={() => setIsDeviceManagerOpen(true)}
+                  className="hover:text-sky-600 font-medium transition-colors"
+                >
+                  Tracked Devices ({deviceCount})
+                </button>
+                <span>•</span>
                 <button
                   onClick={() => setIsCertificateOpen(true)}
-                  className="hover:text-cyan-400 transition-colors"
+                  className="hover:text-sky-600 transition-colors"
                 >
-                  Storage Guarantee Policy
+                  10GB Guarantee
                 </button>
                 <span>•</span>
                 <button
                   onClick={() => setIsSecurityModalOpen(true)}
-                  className="hover:text-cyan-400 transition-colors"
+                  className="hover:text-sky-600 transition-colors"
                 >
                   1-IP Security Status
                 </button>
@@ -436,6 +498,20 @@ export default function App() {
         isOpen={isPurgeModalOpen}
         onClose={() => setIsPurgeModalOpen(false)}
         userEmail={currentUserEmail || DEFAULT_USER_EMAIL}
+      />
+
+      <DeviceManagerModal
+        isOpen={isDeviceManagerOpen}
+        onClose={() => setIsDeviceManagerOpen(false)}
+        userEmail={currentUserEmail || DEFAULT_USER_EMAIL}
+        devices={registeredDevices}
+        currentIp={clientIp}
+        onBackupRestored={handleBackupRestored}
+      />
+
+      <NetlifyScalabilityModal
+        isOpen={isNetlifyModalOpen}
+        onClose={() => setIsNetlifyModalOpen(false)}
       />
     </div>
   );
